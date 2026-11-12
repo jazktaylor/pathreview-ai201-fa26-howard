@@ -85,7 +85,33 @@ technologies from the content itself, so the five `xfail`-marked tests in
   of 2–4 hours. I'm confident I can finish before the Unit 9 deadline.
 - **Blockers:** none. The issue is open and doesn't reference any other issue.
 
-## Unit 8 — Reproduction
+## Unit 8 — Reproduction & solution planning
+
+**Reproduction commit link:** https://github.com/jazktaylor/pathreview-ai201-fa26-howard/commit/17c4812d2cbecd3fe7c615eaeb928dbe694b0399
+
+**Reproduction summary:**
+I ran `pytest tests/unit/test_skill_extractor.py`. The five tests marked for
+#55 reported as XFAIL every time, and with `--runxfail` all five failed with
+`AssertionError`. When I called the extractor directly on each test's input,
+it returned nothing for plain JavaScript and Compose YAML. For TypeScript, the
+`psycopg2` import and the Dockerfile, it returned the wrong skills (Python or
+JavaScript) instead of TypeScript, PostgreSQL or Docker.
+
+**PLAN.md link:** https://github.com/jazktaylor/pathreview-ai201-fa26-howard/blob/fix/55-skill-extractor-js-ts-detection/PLAN.md
+
+**Blockers or open questions:**
+No blockers. Open questions going into Unit 9:
+- When code is TypeScript, should the extractor report only TypeScript, or
+  JavaScript as well? I plan to report only TypeScript and raise it in the PR.
+- Can broader syntax patterns detect Docker without misfiring on look-alikes,
+  such as SQL `FROM` or `services:` in GitHub Actions and Kubernetes YAML? The
+  plan requires two signals before reporting Docker and adds tests that check
+  these cases aren't flagged.
+- Database display names come out as `Postgresql` rather than `PostgreSQL`, and
+  the filename checks use substring matching (`.cs` matches `style.css`). I'm
+  treating both as out of scope unless reviewers want them in this PR.
+
+### Reproduction details
 
 **Reproduced:** yes, reliably (same result on every run, no setup beyond the
 project virtualenv).
