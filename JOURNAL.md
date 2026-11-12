@@ -84,3 +84,38 @@ technologies from the content itself, so the five `xfail`-marked tests in
 - **Time estimate:** about 3–4 hours, which is within the typical Tier 1 range
   of 2–4 hours. I'm confident I can finish before the Unit 9 deadline.
 - **Blockers:** none. The issue is open and doesn't reference any other issue.
+
+## Unit 8 — Reproduction
+
+**Reproduced:** yes, reliably (same result on every run, no setup beyond the
+project virtualenv).
+
+**Steps:**
+
+1. `git checkout fix/55-skill-extractor-js-ts-detection`
+2. `pytest tests/unit/test_skill_extractor.py -q -rx`
+
+   Result: `13 passed, 5 xfailed`. The five tests marked for #55 are reported
+   as XFAIL.
+3. `pytest tests/unit/test_skill_extractor.py -q --runxfail`
+
+   Result: all five fail with `AssertionError`, which confirms their
+   assertions really fail rather than being skipped.
+
+**What the extractor returns today** (from calling
+`SkillExtractor().extract_skills(text)` on each test's input):
+
+| Test | Expected | Actual | Where it goes wrong |
+|---|---|---|---|
+| `test_javascript_detection` | JavaScript | `[]` | `_detect_languages`: the pattern `\b(import\|require)\s+` needs whitespace after the keyword, so `require('fs')` doesn't match. Nothing looks for `const`, `console.log` or `=>`, and `JS_TS_KEYWORDS` is defined but never used. |
+| `test_text_with_typescript_files` | TypeScript | `Python` | `_detect_languages`: TypeScript is chosen only from a `.ts` filename. The Python annotation pattern `:\s*(int\|str\|...)` matches `id: string`, so the code gets tagged as Python instead. |
+| `test_database_technology_detection` | PostgreSQL/SQL | `Python`, `JavaScript` | `_detect_databases`: `DATABASES` only matches literal names such as `postgresql`, so the driver name `psycopg2` isn't recognized. `import psycopg2` also matches the JS import pattern, which makes JavaScript a false positive. |
+| `test_devops_tool_detection` | Docker | `Python` | `_detect_tools`: `TOOLS` only matches the word `docker`. Dockerfile syntax (`FROM`, `RUN`, `EXPOSE`) isn't recognized. |
+| `test_docker_compose_detection` | Docker | `[]` | `_detect_tools`: same cause. Compose syntax (`services:`, `build:`, `ports:`) isn't recognized. |
+
+**Where it lives:** `ingestion/parsers/skill_extractor.py`, in
+`_detect_languages`, `_detect_databases` and `_detect_tools`.
+
+**Note for the fix:** the five tests use `xfail(strict=True)`, so once they
+pass they'll show as XPASS, which strict mode counts as a failure. The markers
+have to be removed in the same commit as the fix.
